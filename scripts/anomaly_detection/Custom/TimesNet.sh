@@ -1,0 +1,21 @@
+python run.py \
+  --task_name anomaly_detection \
+  --is_training 1 \
+  --root_path /home/tki256/Time-Series-Library \
+  --data custom \
+  --data_path data/nice3_train.csv \
+  --model_id custom_anomaly \
+  --model TimesNet \
+  --features S \
+  --target y \
+  --seq_len 100 \
+  --pred_len 0 \
+  --d_model 64 \
+  --d_ff 64 \
+  --e_layers 2 \
+  --enc_in 2 \
+  --c_out 2 \
+  --top_k 3 \
+  --anomaly_ratio 1 \
+  --batch_size 128 \
+  --train_epochs 3

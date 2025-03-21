@@ -30,12 +30,27 @@ def data_provider(args, flag):
 
     if args.task_name == 'anomaly_detection':
         drop_last = False
-        data_set = Data(
-            args = args,
-            root_path=args.root_path,
-            win_size=args.seq_len,
-            flag=flag,
-        )
+        if args.data == 'custom':
+            # カスタムデータセット用の処理
+            data_set = Data(
+                args=args,
+                root_path=args.root_path,
+                data_path=args.data_path,
+                flag=flag,
+                size=[args.seq_len, args.label_len, args.pred_len],
+                features=args.features,
+                target=args.target,
+                timeenc=timeenc,
+                freq=freq
+            )
+        else:
+            # 既存の異常検知データセット用の処理
+            data_set = Data(
+                args=args,
+                root_path=args.root_path,
+                win_size=args.seq_len,
+                flag=flag,
+            )
         print(flag, len(data_set))
         data_loader = DataLoader(
             data_set,
