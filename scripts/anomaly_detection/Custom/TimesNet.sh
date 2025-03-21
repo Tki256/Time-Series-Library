@@ -13,8 +13,8 @@ python run.py \
   --d_model 64 \
   --d_ff 64 \
   --e_layers 2 \
-  --enc_in 2 \
-  --c_out 2 \
+  --enc_in 1 \
+  --c_out 1 \
   --top_k 3 \
   --anomaly_ratio 1 \
   --batch_size 128 \

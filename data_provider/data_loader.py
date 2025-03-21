@@ -298,7 +298,14 @@ class Dataset_Custom(Dataset):
         seq_x_mark = self.data_stamp[s_begin:s_end]
         seq_y_mark = self.data_stamp[r_begin:r_end]
 
-        return seq_x, seq_y, seq_x_mark, seq_y_mark
+        # 異常検知タスク用の処理
+        if hasattr(self.args, 'task_name') and self.args.task_name == 'anomaly_detection':
+            # 異常検知では、入力データと同じデータをラベルとして使用
+            # ラベルは通常0（正常）または1（異常）
+            # ここでは仮に全て0（正常）とする
+            return seq_x, np.zeros(1)  # バッチごとに1つのラベル
+        else:
+            return seq_x, seq_y, seq_x_mark, seq_y_mark
 
     def __len__(self):
         return len(self.data_x) - self.seq_len - self.pred_len + 1
