@@ -8,7 +8,7 @@ python run.py \
   --model TimesNet \
   --features S \
   --target y \
-  --seq_len 100 \
+  --seq_len 200 \
   --pred_len 0 \
   --d_model 64 \
   --d_ff 64 \

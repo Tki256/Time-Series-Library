@@ -303,7 +303,8 @@ class Dataset_Custom(Dataset):
             # 異常検知では、入力データと同じデータをラベルとして使用
             # ラベルは通常0（正常）または1（異常）
             # ここでは仮に全て0（正常）とする
-            return seq_x, np.zeros(1)  # バッチごとに1つのラベル
+            # シーケンス全体に対して1つのラベルを返す
+            return seq_x, np.array([0])  # シーケンスごとに1つのラベル
         else:
             return seq_x, seq_y, seq_x_mark, seq_y_mark
 

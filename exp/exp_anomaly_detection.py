@@ -181,7 +181,17 @@ class Exp_Anomaly_Detection(Exp_Basic):
 
         print("pred:   ", pred.shape)
         print("gt:     ", gt.shape)
-
+        
+        # サイズが一致しない場合、predをgtのサイズに合わせる
+        if len(pred) != len(gt):
+            # seq_lenごとに1つのラベルを取得する（最初の要素を使用）
+            seq_len = self.args.seq_len
+            if len(pred) == len(gt) * seq_len:
+                # seq_lenごとに1つの値を取る（最大値を使用）
+                pred_reshaped = np.array([np.max(pred[i:i+seq_len]) for i in range(0, len(pred), seq_len)])
+                pred = pred_reshaped
+                print(f"Reshaped pred from {len(pred) * seq_len} to {len(pred)}")
+        
         # (4) detection adjustment
         gt, pred = adjustment(gt, pred)
 
