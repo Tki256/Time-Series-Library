@@ -98,8 +98,16 @@ class TimeFeatureEmbedding(nn.Module):
         super(TimeFeatureEmbedding, self).__init__()
 
         freq_map = {'h': 4, 't': 5, 's': 6,
-                    'm': 1, 'a': 1, 'w': 2, 'd': 3, 'b': 3}
-        d_inp = freq_map[freq]
+                    'm': 1, 'a': 1, 'w': 2, 'd': 3, 'b': 3,
+                    'ms': 1}  # ミリ秒データは1次元の特徴量として扱う
+        
+        # freqがfreq_mapに存在しない場合のデフォルト値を設定
+        if freq not in freq_map:
+            print(f"Warning: Frequency '{freq}' not found in freq_map. Using default value 1.")
+            d_inp = 1
+        else:
+            d_inp = freq_map[freq]
+            
         self.embed = nn.Linear(d_inp, d_model, bias=False)
 
     def forward(self, x):

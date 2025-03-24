@@ -92,7 +92,14 @@ class Exp_Short_Term_Forecast(Exp_Basic):
                 batch_y = batch_y[:, -self.args.pred_len:, f_dim:].to(self.device)
 
                 batch_y_mark = batch_y_mark[:, -self.args.pred_len:, f_dim:].to(self.device)
-                loss_value = criterion(batch_x, self.args.frequency_map, outputs, batch_y, batch_y_mark)
+                
+                # frequency_mapが存在しない場合の対処
+                if hasattr(self.args, 'frequency_map'):
+                    loss_value = criterion(batch_x, self.args.frequency_map, outputs, batch_y, batch_y_mark)
+                else:
+                    # frequency_mapがない場合は、単純にMSE損失を使用
+                    loss_value = nn.MSELoss()(outputs, batch_y)
+                    
                 loss_sharpness = mse((outputs[:, 1:, :] - outputs[:, :-1, :]), (batch_y[:, 1:, :] - batch_y[:, :-1, :]))
                 loss = loss_value  # + loss_sharpness * 1e-5
                 train_loss.append(loss.item())

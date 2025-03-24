@@ -87,6 +87,25 @@ class WeekOfYear(TimeFeature):
         return (index.isocalendar().week - 1) / 52.0 - 0.5
 
 
+class MillisecondFeature(TimeFeature):
+    """Millisecond feature normalized to [-0.5, 0.5]"""
+    
+    def __call__(self, index):
+        if isinstance(index, pd.DatetimeIndex):
+            # DatetimeIndexの場合、ミリ秒を抽出
+            ms = index.microsecond / 1000
+            return ms / 999.0 - 0.5
+        else:
+            # 数値型の場合、0から1の範囲に正規化
+            index_array = np.array(index)
+            min_val = index_array.min()
+            max_val = index_array.max()
+            if max_val > min_val:
+                return (index_array - min_val) / (max_val - min_val) - 0.5
+            else:
+                return np.zeros_like(index_array)
+
+
 def time_features_from_frequency_str(freq_str: str) -> List[TimeFeature]:
     """
     Returns a list of time features that will be appropriate for the given frequency string.
@@ -95,6 +114,10 @@ def time_features_from_frequency_str(freq_str: str) -> List[TimeFeature]:
     freq_str
         Frequency string of the form [multiple][granularity] such as "12H", "5min", "1D" etc.
     """
+
+    # ミリ秒データの場合
+    if freq_str == 'ms':
+        return [MillisecondFeature()]  # ミリ秒用の特殊な特徴量クラスを返す
 
     features_by_offsets = {
         offsets.YearEnd: [],
@@ -140,9 +163,26 @@ def time_features_from_frequency_str(freq_str: str) -> List[TimeFeature]:
         T   - minutely
             alias: min
         S   - secondly
+        ms  - millisecond
     """
     raise RuntimeError(supported_freq_msg)
 
 
 def time_features(dates, freq='h'):
-    return np.vstack([feat(dates) for feat in time_features_from_frequency_str(freq)])
+    """
+    時間特徴量を抽出する関数
+    dates: 日付または時間のインデックス
+    freq: 頻度（'ms'の場合はミリ秒データとして処理）
+    """
+    if freq == 'ms' and not isinstance(dates, pd.DatetimeIndex):
+        # 数値型のミリ秒データの場合
+        dates_array = np.array(dates)
+        min_val = dates_array.min()
+        max_val = dates_array.max()
+        if max_val > min_val:
+            normalized = (dates_array - min_val) / (max_val - min_val) - 0.5
+        else:
+            normalized = np.zeros_like(dates_array)
+        return np.vstack([normalized])
+    else:
+        return np.vstack([feat(dates) for feat in time_features_from_frequency_str(freq)])

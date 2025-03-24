@@ -51,6 +51,35 @@ class Dataset_ETT_hour(Dataset):
         df_raw = pd.read_csv(os.path.join(self.root_path,
                                           self.data_path))
 
+        '''
+        df_raw.columns: ['time', ...(other features), target feature]
+        ミリ秒の計測データの場合、最初の列はミリ秒または時間ステップを表す列と想定
+        '''
+        cols = list(df_raw.columns)
+        
+        # ターゲット列が存在するか確認
+        if self.target in cols:
+            cols.remove(self.target)
+        else:
+            print(f"Warning: Target column '{self.target}' not found in dataset. Available columns: {cols}")
+            # ターゲット列が指定されていない場合、最後の列をターゲットとして使用
+            self.target = cols[-1]
+            print(f"Using '{self.target}' as target column")
+            cols.remove(self.target)
+        
+        # 時間列の確認（ミリ秒データの場合）
+        time_col = None
+        for col_name in ['time', 'ms', 'timestamp', 'date', 'ds']:
+            if col_name in cols:
+                time_col = col_name
+                break
+        
+        if time_col is None:
+            print(f"Warning: Time column not found in dataset. Using first column as time column.")
+            time_col = cols[0]
+        
+        cols.remove(time_col)
+        df_raw = df_raw[[time_col] + cols + [self.target]]
         border1s = [0, 12 * 30 * 24 - self.seq_len, 12 * 30 * 24 + 4 * 30 * 24 - self.seq_len]
         border2s = [12 * 30 * 24, 12 * 30 * 24 + 4 * 30 * 24, 12 * 30 * 24 + 8 * 30 * 24]
         border1 = border1s[self.set_type]
@@ -69,17 +98,33 @@ class Dataset_ETT_hour(Dataset):
         else:
             data = df_data.values
 
-        df_stamp = df_raw[['date']][border1:border2]
-        df_stamp['date'] = pd.to_datetime(df_stamp.date)
+        df_stamp = df_raw[[time_col]][border1:border2]
+        
+        # 時間列の型を確認して適切に変換
+        if not pd.api.types.is_datetime64_any_dtype(df_stamp[time_col]):
+            try:
+                # 数値型の場合はミリ秒として変換
+                df_stamp[time_col] = pd.to_datetime(df_stamp[time_col], unit='ms')
+                print(f"Converted {time_col} column to datetime using 'ms' unit")
+            except ValueError:
+                # 通常の日付文字列として変換を試みる
+                try:
+                    df_stamp[time_col] = pd.to_datetime(df_stamp[time_col])
+                    print(f"Converted {time_col} column to datetime using default format")
+                except:
+                    print(f"Warning: Could not convert {time_col} column to datetime. Using numeric values.")
+        else:
+            print(f"{time_col} column is already datetime type")
+            
         if self.timeenc == 0:
-            df_stamp['month'] = df_stamp.date.apply(lambda row: row.month, 1)
-            df_stamp['day'] = df_stamp.date.apply(lambda row: row.day, 1)
-            df_stamp['weekday'] = df_stamp.date.apply(lambda row: row.weekday(), 1)
-            df_stamp['hour'] = df_stamp.date.apply(lambda row: row.hour, 1)
-            data_stamp = df_stamp.drop(['date'], 1).values
+            df_stamp['month'] = df_stamp[time_col].apply(lambda row: row.month, 1)
+            df_stamp['day'] = df_stamp[time_col].apply(lambda row: row.day, 1)
+            df_stamp['weekday'] = df_stamp[time_col].apply(lambda row: row.weekday(), 1)
+            df_stamp['hour'] = df_stamp[time_col].apply(lambda row: row.hour, 1)
+            data_stamp = df_stamp.drop([time_col], 1).values
         elif self.timeenc == 1:
-            data_stamp = time_features(pd.to_datetime(df_stamp['date'].values), freq=self.freq)
-            data_stamp = data_stamp.transpose(1, 0) 
+            data_stamp = time_features(pd.to_datetime(df_stamp[time_col].values), freq=self.freq)
+            data_stamp = data_stamp.transpose(1, 0)
 
         self.data_x = data[border1:border2]
         self.data_y = data[border1:border2]
@@ -144,6 +189,35 @@ class Dataset_ETT_minute(Dataset):
         df_raw = pd.read_csv(os.path.join(self.root_path,
                                           self.data_path))
 
+        '''
+        df_raw.columns: ['time', ...(other features), target feature]
+        ミリ秒の計測データの場合、最初の列はミリ秒または時間ステップを表す列と想定
+        '''
+        cols = list(df_raw.columns)
+        
+        # ターゲット列が存在するか確認
+        if self.target in cols:
+            cols.remove(self.target)
+        else:
+            print(f"Warning: Target column '{self.target}' not found in dataset. Available columns: {cols}")
+            # ターゲット列が指定されていない場合、最後の列をターゲットとして使用
+            self.target = cols[-1]
+            print(f"Using '{self.target}' as target column")
+            cols.remove(self.target)
+        
+        # 時間列の確認（ミリ秒データの場合）
+        time_col = None
+        for col_name in ['time', 'ms', 'timestamp', 'date', 'ds']:
+            if col_name in cols:
+                time_col = col_name
+                break
+        
+        if time_col is None:
+            print(f"Warning: Time column not found in dataset. Using first column as time column.")
+            time_col = cols[0]
+        
+        cols.remove(time_col)
+        df_raw = df_raw[[time_col] + cols + [self.target]]
         border1s = [0, 12 * 30 * 24 * 4 - self.seq_len, 12 * 30 * 24 * 4 + 4 * 30 * 24 * 4 - self.seq_len]
         border2s = [12 * 30 * 24 * 4, 12 * 30 * 24 * 4 + 4 * 30 * 24 * 4, 12 * 30 * 24 * 4 + 8 * 30 * 24 * 4]
         border1 = border1s[self.set_type]
@@ -162,18 +236,34 @@ class Dataset_ETT_minute(Dataset):
         else:
             data = df_data.values
 
-        df_stamp = df_raw[['date']][border1:border2]
-        df_stamp['date'] = pd.to_datetime(df_stamp.date)
+        df_stamp = df_raw[[time_col]][border1:border2]
+        
+        # 時間列の型を確認して適切に変換
+        if not pd.api.types.is_datetime64_any_dtype(df_stamp[time_col]):
+            try:
+                # 数値型の場合はミリ秒として変換
+                df_stamp[time_col] = pd.to_datetime(df_stamp[time_col], unit='ms')
+                print(f"Converted {time_col} column to datetime using 'ms' unit")
+            except ValueError:
+                # 通常の日付文字列として変換を試みる
+                try:
+                    df_stamp[time_col] = pd.to_datetime(df_stamp[time_col])
+                    print(f"Converted {time_col} column to datetime using default format")
+                except:
+                    print(f"Warning: Could not convert {time_col} column to datetime. Using numeric values.")
+        else:
+            print(f"{time_col} column is already datetime type")
+            
         if self.timeenc == 0:
-            df_stamp['month'] = df_stamp.date.apply(lambda row: row.month, 1)
-            df_stamp['day'] = df_stamp.date.apply(lambda row: row.day, 1)
-            df_stamp['weekday'] = df_stamp.date.apply(lambda row: row.weekday(), 1)
-            df_stamp['hour'] = df_stamp.date.apply(lambda row: row.hour, 1)
-            df_stamp['minute'] = df_stamp.date.apply(lambda row: row.minute, 1)
+            df_stamp['month'] = df_stamp[time_col].apply(lambda row: row.month, 1)
+            df_stamp['day'] = df_stamp[time_col].apply(lambda row: row.day, 1)
+            df_stamp['weekday'] = df_stamp[time_col].apply(lambda row: row.weekday(), 1)
+            df_stamp['hour'] = df_stamp[time_col].apply(lambda row: row.hour, 1)
+            df_stamp['minute'] = df_stamp[time_col].apply(lambda row: row.minute, 1)
             df_stamp['minute'] = df_stamp.minute.map(lambda x: x // 15)
-            data_stamp = df_stamp.drop(['date'], 1).values
+            data_stamp = df_stamp.drop([time_col], 1).values
         elif self.timeenc == 1:
-            data_stamp = time_features(pd.to_datetime(df_stamp['date'].values), freq=self.freq)
+            data_stamp = time_features(pd.to_datetime(df_stamp[time_col].values), freq=self.freq)
             data_stamp = data_stamp.transpose(1, 0)
 
         self.data_x = data[border1:border2]
@@ -240,12 +330,34 @@ class Dataset_Custom(Dataset):
                                           self.data_path))
 
         '''
-        df_raw.columns: ['date', ...(other features), target feature]
+        df_raw.columns: ['time', ...(other features), target feature]
+        ミリ秒の計測データの場合、最初の列はミリ秒または時間ステップを表す列と想定
         '''
         cols = list(df_raw.columns)
-        cols.remove(self.target)
-        cols.remove('date')
-        df_raw = df_raw[['date'] + cols + [self.target]]
+        
+        # ターゲット列が存在するか確認
+        if self.target in cols:
+            cols.remove(self.target)
+        else:
+            print(f"Warning: Target column '{self.target}' not found in dataset. Available columns: {cols}")
+            # ターゲット列が指定されていない場合、最後の列をターゲットとして使用
+            self.target = cols[-1]
+            print(f"Using '{self.target}' as target column")
+            cols.remove(self.target)
+        
+        # 時間列の確認（ミリ秒データの場合）
+        time_col = None
+        for col_name in ['time', 'ms', 'timestamp', 'date', 'ds']:
+            if col_name in cols:
+                time_col = col_name
+                break
+        
+        if time_col is None:
+            print(f"Warning: Time column not found in dataset. Using first column as time column.")
+            time_col = cols[0]
+        
+        cols.remove(time_col)
+        df_raw = df_raw[[time_col] + cols + [self.target]]
         num_train = int(len(df_raw) * 0.7)
         num_test = int(len(df_raw) * 0.2)
         num_vali = len(df_raw) - num_train - num_test
@@ -267,16 +379,32 @@ class Dataset_Custom(Dataset):
         else:
             data = df_data.values
 
-        df_stamp = df_raw[['date']][border1:border2]
-        df_stamp['date'] = pd.to_datetime(df_stamp.date)
+        df_stamp = df_raw[[time_col]][border1:border2]
+        
+        # 時間列の型を確認して適切に変換
+        if not pd.api.types.is_datetime64_any_dtype(df_stamp[time_col]):
+            try:
+                # 数値型の場合はミリ秒として変換
+                df_stamp[time_col] = pd.to_datetime(df_stamp[time_col], unit='ms')
+                print(f"Converted {time_col} column to datetime using 'ms' unit")
+            except ValueError:
+                # 通常の日付文字列として変換を試みる
+                try:
+                    df_stamp[time_col] = pd.to_datetime(df_stamp[time_col])
+                    print(f"Converted {time_col} column to datetime using default format")
+                except:
+                    print(f"Warning: Could not convert {time_col} column to datetime. Using numeric values.")
+        else:
+            print(f"{time_col} column is already datetime type")
+            
         if self.timeenc == 0:
-            df_stamp['month'] = df_stamp.date.apply(lambda row: row.month, 1)
-            df_stamp['day'] = df_stamp.date.apply(lambda row: row.day, 1)
-            df_stamp['weekday'] = df_stamp.date.apply(lambda row: row.weekday(), 1)
-            df_stamp['hour'] = df_stamp.date.apply(lambda row: row.hour, 1)
-            data_stamp = df_stamp.drop(['date'], 1).values
+            df_stamp['month'] = df_stamp[time_col].apply(lambda row: row.month, 1)
+            df_stamp['day'] = df_stamp[time_col].apply(lambda row: row.day, 1)
+            df_stamp['weekday'] = df_stamp[time_col].apply(lambda row: row.weekday(), 1)
+            df_stamp['hour'] = df_stamp[time_col].apply(lambda row: row.hour, 1)
+            data_stamp = df_stamp.drop([time_col], 1).values
         elif self.timeenc == 1:
-            data_stamp = time_features(pd.to_datetime(df_stamp['date'].values), freq=self.freq)
+            data_stamp = time_features(pd.to_datetime(df_stamp[time_col].values), freq=self.freq)
             data_stamp = data_stamp.transpose(1, 0)
 
         self.data_x = data[border1:border2]
@@ -313,6 +441,25 @@ class Dataset_Custom(Dataset):
 
     def inverse_transform(self, data):
         return self.scaler.inverse_transform(data)
+
+    def last_insample_window(self):
+        """
+        The last window of insample size of all timeseries.
+        This function does not support batching and does not reshuffle timeseries.
+
+        :return: Last insample window of all timeseries and mask.
+        """
+        # データの最後のウィンドウを取得
+        last_window = self.data_x[-self.seq_len:]
+        mask = np.ones((1, self.seq_len))  # マスクは全て1（有効）
+        
+        # 形状を整える
+        if len(last_window.shape) == 2:  # (seq_len, feature)
+            last_window = last_window.reshape(1, last_window.shape[0], last_window.shape[1])
+        else:  # すでに3次元の場合
+            last_window = last_window.reshape(1, last_window.shape[0], -1)
+            
+        return last_window, mask
 
 
 class Dataset_M4(Dataset):
